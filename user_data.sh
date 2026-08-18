@@ -14,7 +14,7 @@ echo "======================================================="
 # ─────────────────────────────────────────────────────────────────────────────
 # BIẾN CẤU HÌNH — Thay đổi theo thực tế của bạn
 # ─────────────────────────────────────────────────────────────────────────────
-GIT_REPO_URL="https://github.com/YOUR_USERNAME/CloudComputing.git"   # <<< THAY ĐỔI
+GIT_REPO_URL="https://github.com/Manh-Test/CloudComputing.git"
 DEPLOY_DIR="/app/CloudComputing"
 APP_PORT=3000
 AWS_REGION="ap-southeast-1"                                           # <<< THAY ĐỔI nếu cần
@@ -25,6 +25,17 @@ LOG_GROUP_NAME="/cloudcomputing/app"
 # ─────────────────────────────────────────────────────────────────────────────
 echo "[1/6] Cập nhật hệ thống và cài đặt dependencies..."
 export DEBIAN_FRONTEND=noninteractive
+
+# Tạo 4GB Swap space để đảm bảo MSSQL chạy mượt trên t2.micro / t3.micro (1GB RAM)
+if [ ! -f /swapfile ]; then
+    echo "Creating 4GB Swap file..."
+    fallocate -l 4G /swapfile || dd if=/dev/zero of=/swapfile bs=1M count=4096
+    chmod 600 /swapfile
+    mkswap /swapfile
+    swapon /swapfile
+    echo '/swapfile none swap sw 0 0' >> /etc/fstab
+    echo "4GB Swap enabled successfully."
+fi
 
 apt-get update -y
 apt-get upgrade -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold"
