@@ -1,0 +1,93 @@
+name: 🚀 Build & Deploy to AWS EC2 (via ECR)
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:  # Cho phép chạy thủ công
+
+env:
+  AWS_REGION: ap-southeast-1               # <<< THAY ĐỔI nếu cần
+  ECR_REPOSITORY: cloudcomputing-app       # <<< THAY ĐỔI theo tên ECR repo của bạn
+
+jobs:
+  # ─────────────────────────────────────────────────────────────────────────────
+  # JOB 1: Build & Push Docker Image lên Amazon ECR
+  # ─────────────────────────────────────────────────────────────────────────────
+  build-and-push:
+    name: 🐳 Build Docker Image & Push to ECR
+    runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.build-image.outputs.image }}
+
+    steps:
+      - name: ⬇️ Checkout source code
+        uses: actions/checkout@v4
+
+      - name: 🔐 Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: 🔑 Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: 🏗️ Build, tag & push image to ECR
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          # Build Docker image
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
+
+          # Push cả SHA tag và latest
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+          echo "✅ Image pushed: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # JOB 2: Trigger Auto Scaling Group Instance Refresh
+  # (Thay thế instances cũ bằng instances mới với image mới nhất)
+  # ─────────────────────────────────────────────────────────────────────────────
+  deploy:
+    name: 🔄 Deploy - Trigger ASG Instance Refresh
+    runs-on: ubuntu-latest
+    needs: build-and-push
+
+    steps:
+      - name: 🔐 Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: 🔄 Start ASG Instance Refresh
+        env:
+          ASG_NAME: ${{ secrets.ASG_NAME }}   # Tên Auto Scaling Group của bạn
+        run: |
+          echo "Triggering instance refresh on ASG: $ASG_NAME"
+          aws autoscaling start-instance-refresh \
+            --auto-scaling-group-name "$ASG_NAME" \
+            --strategy Rolling \
+            --preferences '{"MinHealthyPercentage": 50, "InstanceWarmup": 300}'
+
+          echo "✅ Instance refresh started. Các EC2 mới sẽ pull image:latest từ ECR."
+
+      - name: 🔔 Notify deployment status
+        if: always()
+        run: |
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "✅ DEPLOYMENT SUCCESSFUL!"
+            echo "   Image: ${{ needs.build-and-push.outputs.image }}"
+            echo "   Branch: ${{ github.ref_name }}"
+            echo "   Commit: ${{ github.sha }}"
+          else
+            echo "❌ DEPLOYMENT FAILED! Check logs above."
+          fi

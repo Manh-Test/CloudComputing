@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Hệ thống Quản lý Nhân sự & Phòng ban - CRUD Application sử dụng Node.js & SQL Server">
+    <title>TaskSync Enterprise - Quản lý Nhân sự & Hệ thống</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="brand">
+                <i class="fa-solid fa-server brand-icon"></i>
+                <div class="brand-text">
+                    <h2>CloudSync</h2>
+                    <span>Enterprise Portal</span>
+                </div>
+            </div>
+            
+            <nav class="nav-menu">
+                <a href="#" class="nav-item active" data-view="employees">
+                    <i class="fa-solid fa-users"></i>
+                    <span>Quản lý Nhân sự</span>
+                </a>
+                <a href="#" class="nav-item" data-view="departments">
+                    <i class="fa-solid fa-sitemap"></i>
+                    <span>Phòng ban</span>
+                </a>
+                <a href="#" class="nav-item" data-view="docker">
+                    <i class="fa-solid fa-cubes"></i>
+                    <span>Docker Services</span>
+                </a>
+                <a href="#" class="nav-item" data-view="api-docs">
+                    <i class="fa-solid fa-chart-line"></i>
+                    <span>Thống kê API</span>
+                </a>
+            </nav>
+
+            <div class="docker-badge">
+                <i class="fa-brands fa-docker"></i>
+                <div>
+                    <strong>Docker Environment</strong>
+                    <span id="db-status-badge">SQL Server Connected</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+
+            <!-- View 1: Employee Management -->
+            <section id="view-employees" class="view-section active">
+                <header class="top-header">
+                    <div class="header-title">
+                        <h1>Danh Sách Nhân Viên</h1>
+                        <p>Quản lý dữ liệu nhân sự CRUD trực quan với Node.js + Microsoft SQL Server</p>
+                    </div>
+                    <div class="header-actions">
+                        <button id="btn-add-employee" class="btn btn-primary">
+                            <i class="fa-solid fa-plus"></i> Thêm Nhân Viên Mới
+                        </button>
+                    </div>
+                </header>
+
+                <!-- Dashboard Stats Overview -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon icon-blue">
+                            <i class="fa-solid fa-user-group"></i>
+                        </div>
+                        <div class="stat-info">
+                            <span class="stat-label">Tổng Số Nhân Viên</span>
+                            <h3 id="stat-total">0</h3>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon icon-green">
+                            <i class="fa-solid fa-user-check"></i>
+                        </div>
+                        <div class="stat-info">
+                            <span class="stat-label">Đang Hoạt Động</span>
+                            <h3 id="stat-active">0</h3>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon icon-orange">
+                            <i class="fa-solid fa-user-clock"></i>
+                        </div>
+                        <div class="stat-info">
+                            <span class="stat-label">Nghỉ Phép</span>
+                            <h3 id="stat-onleave">0</h3>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon icon-purple">
+                            <i class="fa-solid fa-wallet"></i>
+                        </div>
+                        <div class="stat-info">
+                            <span class="stat-label">Lương Trung Bình</span>
+                            <h3 id="stat-avg-salary">0 VNĐ</h3>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Control Bar (Filter & Search) -->
+                <div class="control-bar">
+                    <div class="search-box">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="search-input" placeholder="Tìm theo tên, email, chức vụ...">
+                    </div>
+
+                    <div class="filters-group">
+                        <div class="filter-item">
+                            <label for="filter-department"><i class="fa-solid fa-filter"></i> Phòng ban:</label>
+                            <select id="filter-department">
+                                <option value="All">Tất cả phòng ban</option>
+                                <option value="Công nghệ thông tin">Công nghệ thông tin</option>
+                                <option value="Nhân sự">Nhân sự</option>
+                                <option value="Kinh doanh">Kinh doanh</option>
+                                <option value="Marketing">Marketing</option>
+                            </select>
+                        </div>
+
+                        <div class="filter-item">
+                            <label for="filter-status"><i class="fa-solid fa-signal"></i> Trạng thái:</label>
+                            <select id="filter-status">
+                                <option value="All">Tất cả trạng thái</option>
+                                <option value="Active">Đang làm việc</option>
+                                <option value="On Leave">Nghỉ phép</option>
+                                <option value="Terminated">Đã nghỉ việc</option>
+                            </select>
+                        </div>
+
+                        <button id="btn-refresh" class="btn btn-secondary">
+                            <i class="fa-solid fa-rotate-right"></i> Làm mới
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Employee Data Table -->
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Họ và Tên</th>
+                                <th>Email</th>
+                                <th>Phòng Ban</th>
+                                <th>Chức Vụ</th>
+                                <th>Lương (VNĐ)</th>
+                                <th>Trạng Thái</th>
+                                <th class="text-right">Thao Tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="employee-table-body">
+                            <!-- Dynamic Rows injected via JavaScript -->
+                        </tbody>
+                    </table>
+                    <div id="table-loading" class="table-state">
+                        <div class="spinner"></div>
+                        <p>Đang tải dữ liệu từ SQL Server...</p>
+                    </div>
+                    <div id="table-empty" class="table-state hidden">
+                        <i class="fa-regular fa-folder-open empty-icon"></i>
+                        <p>Không tìm thấy nhân viên phù hợp.</p>
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- View 2: Department Management -->
+            <section id="view-departments" class="view-section hidden">
+                <header class="top-header">
+                    <div class="header-title">
+                        <h1>Quản Lý Phòng Ban</h1>
+                        <p>Thống kê phân bổ nhân sự, quy mô phòng ban và tổng ngân sách chi trả lương</p>
+                    </div>
+                    <div class="header-actions">
+                        <button id="btn-refresh-departments" class="btn btn-secondary">
+                            <i class="fa-solid fa-rotate-right"></i> Cập Nhật Dữ Liệu
+                        </button>
+                    </div>
+                </header>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon icon-blue">
+                            <i class="fa-solid fa-building-user"></i>
+                        </div>
+                        <div class="stat-info">
+                            <span class="stat-label">Tổng Số Phòng Ban</span>
+                            <h3 id="stat-dept-count">0</h3>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon icon-green">
+                            <i class="fa-solid fa-hand-holding-dollar"></i>
+                        </div>
+                        <div class="stat-info">
+                            <span class="stat-label">Tổng Ngân Sách Lương/Tháng</span>
+                            <h3 id="stat-dept-total-budget">0 VNĐ</h3>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon icon-purple">
+                            <i class="fa-solid fa-chart-pie"></i>
+                        </div>
+                        <div class="stat-info">
+                            <span class="stat-label">Lương TB Phòng Ban</span>
+                            <h3 id="stat-dept-avg-salary">0 VNĐ</h3>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="departments-grid" id="departments-container">
+                    <!-- Dynamic Department Cards Injected via JS -->
+                </div>
+            </section>
+
+
+            <!-- View 3: Docker Services Status -->
+            <section id="view-docker" class="view-section hidden">
+                <header class="top-header">
+                    <div class="header-title">
+                        <h1>Docker & Database Services</h1>
+                        <p>Giám sát trạng thái Container, kết nối MS SQL Server 2022 và môi trường ứng dụng</p>
+                    </div>
+                    <div class="header-actions">
+                        <button id="btn-check-docker-health" class="btn btn-primary">
+                            <i class="fa-solid fa-heart-pulse"></i> Kiểm Tra Kết Nối DB
+                        </button>
+                    </div>
+                </header>
+
+                <div class="docker-services-grid">
+                    <div class="service-card active-service">
+                        <div class="service-header">
+                            <div class="service-title">
+                                <i class="fa-solid fa-database service-icon sql-icon"></i>
+                                <div>
+                                    <h3>sqlserver_db</h3>
+                                    <span>Microsoft SQL Server 2022</span>
+                                </div>
+                            </div>
+                            <span class="service-badge badge-running"><i class="fa-solid fa-circle"></i> HEALTHY</span>
+                        </div>
+                        <div class="service-details">
+                            <div class="detail-row"><span>Image:</span> <strong>mcr.microsoft.com/mssql/server:2022-latest</strong></div>
+                            <div class="detail-row"><span>Mapped Port:</span> <strong>1433:1433</strong></div>
+                            <div class="detail-row"><span>Database Name:</span> <strong>EmployeeDB</strong></div>
+                            <div class="detail-row"><span>Health Check:</span> <strong>sqlcmd -S localhost -U sa ... SELECT 1</strong></div>
+                        </div>
+                    </div>
+
+                    <div class="service-card active-service">
+                        <div class="service-header">
+                            <div class="service-title">
+                                <i class="fa-brands fa-node-js service-icon node-icon"></i>
+                                <div>
+                                    <h3>nodejs_crud_app</h3>
+                                    <span>Node.js v18 Express Backend</span>
+                                </div>
+                            </div>
+                            <span class="service-badge badge-running"><i class="fa-solid fa-circle"></i> RUNNING</span>
+                        </div>
+                        <div class="service-details">
+                            <div class="detail-row"><span>Base Image:</span> <strong>node:18-alpine</strong></div>
+                            <div class="detail-row"><span>App Port:</span> <strong>3000:3000</strong></div>
+                            <div class="detail-row"><span>Dependency:</span> <strong>depends_on sqlserver_db (healthy)</strong></div>
+                            <div class="detail-row"><span>Auto-Retry Pool:</span> <strong>10 attempts / 3000ms delay</strong></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel-card">
+                    <div class="panel-header">
+                        <h3><i class="fa-solid fa-sliders"></i> Biến Môi Trường (Environment Variables)</h3>
+                    </div>
+                    <div class="panel-body">
+                        <table class="env-table">
+                            <thead>
+                                <tr>
+                                    <th>Tên Biến (Variable)</th>
+                                    <th>Giá Trị Cấu Hình (Value)</th>
+                                    <th>Mô Tả</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td><code>DB_SERVER</code></td><td><code>db</code> / <code>localhost</code></td><td>Tên host kết nối SQL Server (Docker service alias)</td></tr>
+                                <tr><td><code>DB_PORT</code></td><td><code>1433</code></td><td>Cổng dịch vụ SQL Server</td></tr>
+                                <tr><td><code>DB_USER</code></td><td><code>sa</code></td><td>Tài khoản System Administrator</td></tr>
+                                <tr><td><code>DB_PASSWORD</code></td><td><code>YourStrong@Pass123</code></td><td>Mật khẩu truy cập CSDL</td></tr>
+                                <tr><td><code>DB_NAME</code></td><td><code>EmployeeDB</code></td><td>Tên Cơ sở dữ liệu chính</td></tr>
+                                <tr><td><code>PORT</code></td><td><code>3000</code></td><td>Cổng chạy Web App Express</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="panel-card">
+                    <div class="panel-header">
+                        <h3><i class="fa-solid fa-terminal"></i> Database Diagnostics Output (<code>/health</code>)</h3>
+                    </div>
+                    <div class="panel-body">
+                        <pre id="health-output-log" class="code-block">Nhấn "Kiểm Tra Kết Nối DB" để gửi yêu cầu chẩn đoán tới endpoint /health...</pre>
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- View 4: API Docs & Interactive Testing -->
+            <section id="view-api-docs" class="view-section hidden">
+                <header class="top-header">
+                    <div class="header-title">
+                        <h1>Thống Kê & Tài Liệu API</h1>
+                        <p>Danh sách RESTful APIs được hỗ trợ bởi Node.js Backend & Công cụ gửi Yêu cầu Trực tiếp</p>
+                    </div>
+                </header>
+
+                <div class="panel-card">
+                    <div class="panel-header">
+                        <h3><i class="fa-solid fa-vial"></i> Thử Nghiệm API Trực Tiếp (Interactive API Console)</h3>
+                    </div>
+                    <div class="panel-body">
+                        <div class="api-tester-form">
+                            <div class="form-row">
+                                <div class="form-group" style="flex: 1;">
+                                    <label for="api-test-endpoint">Chọn Endpoint API:</label>
+                                    <select id="api-test-endpoint">
+                                        <option value="GET /api/employees">GET /api/employees (Lấy danh sách nhân viên)</option>
+                                        <option value="GET /api/employees/departments/stats">GET /api/employees/departments/stats (Thống kê phòng ban)</option>
+                                        <option value="GET /api/employees/1">GET /api/employees/1 (Chi tiết nhân viên #1)</option>
+                                        <option value="GET /health">GET /health (Trạng thái CSDL)</option>
+                                    </select>
+                                </div>
+                                <div class="form-group text-right" style="align-self: flex-end;">
+                                    <button id="btn-execute-api" class="btn btn-primary">
+                                        <i class="fa-solid fa-paper-plane"></i> Gửi Yêu Cầu (Send Request)
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="api-response-container">
+                            <div class="response-status-bar">
+                                <span>Status: <strong id="api-status-code">-</strong></span>
+                                <span>Time: <strong id="api-response-time">-</strong></span>
+                            </div>
+                            <pre id="api-response-json" class="code-block">Response JSON sẽ hiển thị ở đây...</pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="api-docs-list">
+                    <div class="api-card">
+                        <div class="api-badge get">GET</div>
+                        <div class="api-info">
+                            <code>/api/employees</code>
+                            <p>Lấy danh sách tất cả nhân viên. Hỗ trợ query search, department, status.</p>
+                        </div>
+                    </div>
+
+                    <div class="api-card">
+                        <div class="api-badge get">GET</div>
+                        <div class="api-info">
+                            <code>/api/employees/departments/stats</code>
+                            <p>Lấy thống kê tổng hợp số lượng nhân viên, tổng quỹ lương và lương trung bình từng phòng ban.</p>
+                        </div>
+                    </div>
+
+                    <div class="api-card">
+                        <div class="api-badge get">GET</div>
+                        <div class="api-info">
+                            <code>/api/employees/:id</code>
+                            <p>Lấy thông tin chi tiết của 1 nhân viên theo ID.</p>
+                        </div>
+                    </div>
+
+                    <div class="api-card">
+                        <div class="api-badge post">POST</div>
+                        <div class="api-info">
+                            <code>/api/employees</code>
+                            <p>Thêm mới nhân viên. Yêu cầu JSON Body: fullName, email, department, position, salary, status.</p>
+                        </div>
+                    </div>
+
+                    <div class="api-card">
+                        <div class="api-badge put">PUT</div>
+                        <div class="api-info">
+                            <code>/api/employees/:id</code>
+                            <p>Cập nhật thông tin nhân viên theo ID.</p>
+                        </div>
+                    </div>
+
+                    <div class="api-card">
+                        <div class="api-badge delete">DELETE</div>
+                        <div class="api-info">
+                            <code>/api/employees/:id</code>
+                            <p>Xóa bản ghi nhân viên theo ID khỏi cơ sở dữ liệu.</p>
+                        </div>
+                    </div>
+
+                    <div class="api-card">
+                        <div class="api-badge get">GET</div>
+                        <div class="api-info">
+                            <code>/health</code>
+                            <p>Kiểm tra kết nối trực tiếp từ Node.js Backend đến SQL Server DB.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Modal Form (Create / Edit Employee) -->
+    <div id="employee-modal" class="modal-overlay hidden">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="modal-title"><i class="fa-solid fa-user-plus"></i> Thêm Nhân Viên Mới</h3>
+                <button id="btn-close-modal" class="btn-icon"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <form id="employee-form" class="modal-body">
+                <input type="hidden" id="employee-id">
+
+                <div class="form-group">
+                    <label for="fullName">Họ và Tên <span class="required">*</span></label>
+                    <input type="text" id="fullName" required placeholder="Nhập họ và tên đầy đủ">
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Địa chỉ Email <span class="required">*</span></label>
+                    <input type="email" id="email" required placeholder="example@techcorp.vn">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="department">Phòng Ban <span class="required">*</span></label>
+                        <select id="department" required>
+                            <option value="">-- Chọn phòng ban --</option>
+                            <option value="Công nghệ thông tin">Công nghệ thông tin</option>
+                            <option value="Nhân sự">Nhân sự</option>
+                            <option value="Kinh doanh">Kinh doanh</option>
+                            <option value="Marketing">Marketing</option>
+                            <option value="Tài chính">Tài chính</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="position">Chức Vụ <span class="required">*</span></label>
+                        <input type="text" id="position" required placeholder="Ví dụ: Lập trình viên">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="salary">Mức Lương (VNĐ) <span class="required">*</span></label>
+                        <input type="number" id="salary" min="0" step="500000" required placeholder="15000000">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="status">Trạng Thái Làm Việc</label>
+                        <select id="status">
+                            <option value="Active">Đang làm việc</option>
+                            <option value="On Leave">Nghỉ phép</option>
+                            <option value="Terminated">Đã nghỉ việc</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" id="btn-cancel-modal" class="btn btn-secondary">Hủy bỏ</button>
+                    <button type="submit" id="btn-save-employee" class="btn btn-primary">
+                        <i class="fa-solid fa-floppy-disk"></i> Lưu Nhân Viên
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Application Script -->
+    <script src="js/app.js"></script>
+</body>
+</html>
