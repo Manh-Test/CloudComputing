@@ -184,9 +184,7 @@ docker compose down --remove-orphans 2>/dev/null || true
 # Build & start
 docker compose up -d --build
 
-# Chờ app khởi động (MSSQL cần thời gian init)
-echo "Đang chờ containers khởi động (90 giây)..."
-sleep 90
+echo "Containers starting up..."
 docker compose ps
 docker compose logs --tail=20
 
