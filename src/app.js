@@ -25,10 +25,10 @@ app.get('/health', async (req, res) => {
     try {
         const pool = await getPool();
         await pool.request().query('SELECT 1 as alive');
-        res.status(200).json({ status: 'UP', database: 'CONNECTED', timestamp: new Date() });
+        res.status(200).json({ status: 'UP', database: 'CONNECTED', version: '1.0.1', timestamp: new Date() });
     } catch (err) {
         // Return 200 so Load Balancer health check passes while DB completes initialization
-        res.status(200).json({ status: 'INITIALIZING', database: 'CONNECTING', error: err.message, timestamp: new Date() });
+        res.status(200).json({ status: 'INITIALIZING', database: 'CONNECTING', version: '1.0.1', error: err.message, timestamp: new Date() });
     }
 });
 

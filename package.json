@@ -1,6 +1,6 @@
 {
   "name": "cloudcomputing-crud-app",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Simple CRUD Web Application with Node.js & SQL Server containerized with Docker",
   "main": "src/app.js",
   "scripts": {
